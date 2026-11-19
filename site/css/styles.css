@@ -91,7 +91,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; text-transform: uppe
 
 /* Hero */
 .hero { position: relative; background: var(--amarillo); border-bottom: var(--linea); padding: clamp(2rem, 6vw, 4rem) var(--pad) clamp(2rem, 5vw, 3.5rem); overflow: hidden; }
-.hero h1 { display: flex; flex-direction: column; font-size: clamp(5rem, 31vw, 21rem); letter-spacing: -0.01em; line-height: 0.82; text-shadow: 0.035em 0.035em 0 var(--hueso); }
+.hero h1 { display: flex; flex-direction: column; font-size: clamp(5rem, 31vw, 21rem); letter-spacing: -0.01em; line-height: 0.88; text-shadow: 0.035em 0.035em 0 var(--hueso); }
 .hero h1 span:last-child { margin-left: 0.5em; }
 .sticker {
   position: absolute; right: var(--pad); top: 1.25rem; z-index: 2;
@@ -223,4 +223,19 @@ dialog h3 { font-family: var(--display); font-size: 1.8rem; text-transform: uppe
   .res-btn { order: 2; }
   .top nav { order: 3; width: 100%; }
   .sticker { position: static; display: inline-block; margin-bottom: 1rem; }
+}
+
+@media (min-width: 900px) {
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-areas: 'title next' 'title lead' 'title btn';
+    column-gap: 3rem;
+    align-items: end;
+  }
+  .hero h1 { grid-area: title; font-size: clamp(8rem, 22vw, 18rem); }
+  .hero-row { display: contents; }
+  .hero .next { grid-area: next; align-self: end; margin-bottom: 1.5rem; }
+  .hero .lead { grid-area: lead; max-width: 30ch; margin-bottom: 1.5rem; }
+  .hero .btn { grid-area: btn; justify-self: start; }
 }
