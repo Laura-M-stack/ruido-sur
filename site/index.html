@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ruido Sur · Sello y shows en el sur de Buenos Aires</title>
+  <meta name="description" content="Sello independiente y ciclo de shows de punk, hardcore, post-punk y noise en la zona sur. Mirá la agenda y reservá entrada. Sitio de demostración.">
+  <meta name="robots" content="noindex">
+  <meta property="og:title" content="Ruido Sur · Sello y shows">
+  <meta property="og:description" content="Demo de un sello independiente en estilo Swiss punk: HTML, CSS y JavaScript sin dependencias.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_AR">
+  <meta property="og:image" content="https://laura-m-stack.github.io/ruido-sur/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#f5e500">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#agenda">Saltar a la agenda</a>
+  <p class="demo-note">Proyecto de demostración: Ruido Sur es un sello ficticio y no se venden entradas ni discos.</p>
+
+  <header class="top">
+    <a class="brand" href="#inicio" aria-label="Ruido Sur, inicio">RUIDO SUR</a>
+    <nav aria-label="Principal">
+      <a href="#agenda">Agenda</a>
+      <a href="#discos">Discos</a>
+      <a href="#manifiesto">Manifiesto</a>
+    </nav>
+    <button class="res-btn" id="open-res" type="button" aria-haspopup="dialog">
+      Mis reservas <span class="res-count" id="res-count" aria-label="0 entradas">0</span>
+    </button>
+  </header>
+
+  <main id="inicio">
+    <section class="hero" aria-labelledby="t-hero">
+      <p class="sticker" aria-hidden="true">Sello + fechas<br>Zona Sur · BA</p>
+      <h1 id="t-hero"><span>RUIDO</span><span>SUR</span></h1>
+      <div class="hero-row">
+        <p class="lead">Discos y shows hechos por gente del sur, para gente del sur. Sin permiso y sin cargo de servicio.</p>
+        <aside class="next" aria-label="Próxima fecha">
+          <p class="next-label">Próxima fecha</p>
+          <p class="next-band" id="next-band">—</p>
+          <p class="next-meta" id="next-meta"></p>
+          <p class="next-count" id="next-count" aria-live="off"></p>
+        </aside>
+      </div>
+      <a class="btn" href="#agenda">Ver la agenda</a>
+    </section>
+
+    <section class="agenda" id="agenda" aria-labelledby="t-agenda">
+      <div class="section-head">
+        <h2 id="t-agenda">AGENDA</h2>
+        <p class="note">Las fechas se calculan a partir de hoy, así la demo nunca queda vencida.</p>
+      </div>
+
+      <div class="tools">
+        <div class="chips" role="group" aria-label="Filtrar por género" id="chips"></div>
+        <div class="search">
+          <label for="q">Buscar banda, lugar o barrio</label>
+          <input id="q" type="search" autocomplete="off" placeholder="Ej.: Avellaneda">
+        </div>
+        <label class="check"><input type="checkbox" id="solo"> <span>Solo con entradas</span></label>
+      </div>
+
+      <p class="live" id="live" role="status"></p>
+      <noscript><p class="empty">La agenda necesita JavaScript para mostrarse.</p></noscript>
+      <ol class="shows" id="shows"></ol>
+      <p class="empty" id="empty" hidden>Ningún show coincide con ese filtro. Probá con otro género o borrá la búsqueda.</p>
+    </section>
+
+    <section class="discos" id="discos" aria-labelledby="t-discos">
+      <div class="section-head">
+        <h2 id="t-discos">DISCOS</h2>
+        <p class="note">Ediciones chicas, prensadas en el sur.</p>
+      </div>
+      <ul class="releases" id="releases"></ul>
+    </section>
+
+    <section class="manifiesto" id="manifiesto" aria-labelledby="t-man">
+      <h2 id="t-man" class="sr-only">Manifiesto</h2>
+      <p class="big">Entrada <em>accesible</em>.<br>Sonido <em>fuerte</em>.<br>Cero <em>cargos</em> ocultos.</p>
+      <p class="small">Ruido Sur nació en un sótano de La Boca con un amplificador prestado. Seguimos igual: pocas fechas, precios a la vista y la plata va a las bandas y al alquiler del lugar. Todo lo demás es ruido.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Ruido Sur · Demostración de diseño y desarrollo de <a href="https://github.com/Laura-M-stack/ruido-sur">Laura Moyano</a></p>
+    <p>Contacto de ejemplo: hola@ruidosur.example</p>
+  </footer>
+
+  <dialog id="dlg-reserva" aria-labelledby="dr-title">
+    <form method="dialog" class="dlg-close"><button class="icon-btn" aria-label="Cerrar">Cerrar ✕</button></form>
+    <h2 id="dr-title" tabindex="-1">Reservar entradas</h2>
+    <p class="dr-info" id="dr-info"></p>
+    <form id="form-reserva" novalidate>
+      <div class="field">
+        <label for="dr-nombre">A nombre de</label>
+        <input id="dr-nombre" name="nombre" type="text" autocomplete="name" aria-describedby="dr-err-nombre" required>
+        <p class="err" id="dr-err-nombre"></p>
+      </div>
+      <div class="field">
+        <label for="dr-cant">Cantidad de entradas</label>
+        <select id="dr-cant" name="cant" aria-describedby="dr-help dr-err-cant"></select>
+        <p class="help" id="dr-help"></p>
+        <p class="err" id="dr-err-cant"></p>
+      </div>
+      <p class="total">Total a pagar en la puerta <strong id="dr-total">—</strong></p>
+      <button class="btn" type="submit" id="dr-submit">Reservar</button>
+    </form>
+    <p class="blocked" id="dr-blocked" hidden></p>
+    <div class="done" id="dr-done" hidden>
+      <h3 id="dr-done-title" tabindex="-1">Reserva anotada</h3>
+      <pre id="dr-resumen"></pre>
+      <button class="btn btn-alt" type="button" id="dr-copy">Copiar reserva</button>
+      <p class="help" id="dr-copied" role="status"></p>
+      <p class="note">Es una demo: no se guarda en ningún servidor, solo en este navegador.</p>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-mis" aria-labelledby="dm-title">
+    <form method="dialog" class="dlg-close"><button class="icon-btn" aria-label="Cerrar">Cerrar ✕</button></form>
+    <h2 id="dm-title" tabindex="-1">Mis reservas</h2>
+    <p class="empty" id="dm-empty">Todavía no reservaste ningún show.</p>
+    <ul class="mis" id="dm-list"></ul>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

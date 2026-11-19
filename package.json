@@ -1,0 +1,12 @@
+{
+  "name": "ruido-sur",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo de sello independiente y ciclo de shows en estilo Swiss punk. HTML, CSS y JavaScript sin dependencias.",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
