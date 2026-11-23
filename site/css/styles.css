@@ -94,7 +94,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; text-transform: uppe
 .hero h1 { display: flex; flex-direction: column; font-size: clamp(5rem, 31vw, 21rem); letter-spacing: -0.01em; line-height: 0.88; text-shadow: 0.035em 0.035em 0 var(--hueso); }
 .hero h1 span:last-child { margin-left: 0.5em; }
 .sticker {
-  position: absolute; right: var(--pad); top: 1.25rem; z-index: 2;
+  position: absolute; right: -0.75rem; top: -0.9rem; z-index: 3;
   margin: 0; padding: 0.5rem 0.9rem; background: var(--negro); color: var(--amarillo);
   font-weight: 700; font-size: 0.8125rem; text-transform: uppercase; line-height: 1.3;
   transform: rotate(4deg);
@@ -222,20 +222,136 @@ dialog h3 { font-family: var(--display); font-size: 1.8rem; text-transform: uppe
   .brand { order: 1; }
   .res-btn { order: 2; }
   .top nav { order: 3; width: 100%; }
-  .sticker { position: static; display: inline-block; margin-bottom: 1rem; }
 }
 
 @media (min-width: 900px) {
   .hero {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-    grid-template-areas: 'title next' 'title lead' 'title btn';
+    grid-template-areas: 'title foto' 'title next' 'title lead' 'title btn';
     column-gap: 3rem;
     align-items: end;
   }
   .hero h1 { grid-area: title; font-size: clamp(8rem, 22vw, 18rem); }
   .hero-row { display: contents; }
   .hero .next { grid-area: next; align-self: end; margin-bottom: 1.5rem; }
+  .hero-foto { grid-area: foto; margin: 0.5rem 0 0; max-width: 23rem; justify-self: start; }
+  .hero .next { position: relative; z-index: 3; margin-top: -3.5rem; }
   .hero .lead { grid-area: lead; max-width: 30ch; margin-bottom: 1.5rem; }
   .hero .btn { grid-area: btn; justify-self: start; }
+}
+
+/* ---------- Fotos con trama de fotocopia ----------
+   La foto pasa a blanco y negro y se multiplica sobre el amarillo; encima, una grilla de puntos
+   "aclara" lo que no es tinta: queda como impresa en offset barato. */
+.trama { position: relative; overflow: hidden; background: var(--amarillo); isolation: isolate; }
+.trama img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.8) brightness(1.15); mix-blend-mode: multiply; }
+.trama::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle, rgba(245, 229, 0, 0.85) 0 0.8px, transparent 1.3px) 0 0 / 3px 3px;
+  mix-blend-mode: lighten;
+}
+
+main { overflow-x: clip; }
+
+/* Hero: foto pegada con cinta, ligeramente torcida */
+.hero-foto { position: relative; margin: 1.5rem 0 0; transform: rotate(2deg); max-width: 34rem; }
+.hero-foto .trama { aspect-ratio: 16 / 10; border: var(--linea); box-shadow: 8px 8px 0 var(--negro); }
+.cinta-adhesiva {
+  position: absolute; left: 38%; top: -0.9rem; width: 7.5rem; height: 1.9rem; z-index: 2;
+  background: rgba(241, 237, 228, 0.78); transform: rotate(-6deg);
+  box-shadow: 0 1px 0 rgba(10, 10, 10, 0.12);
+}
+
+/* La palabra gigante se estira con el scroll (líneas de tiempo nativas; sin soporte, queda quieta) */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .hero h1 span { display: block; transform-origin: 0 100%; animation: estirar linear both; animation-timeline: scroll(root block); animation-range: 0 75vh; }
+    .hero h1 span:last-child { animation-name: estirar-2; }
+    @keyframes estirar { to { transform: scale(1.04, 1.5) skewX(-7deg); } }
+    @keyframes estirar-2 { to { transform: scale(1.02, 1.3) skewX(9deg) translateX(-0.06em); } }
+  }
+}
+
+/* ---------- Marquesinas ---------- */
+.marquesina { overflow: hidden; background: var(--negro); color: var(--amarillo); border-bottom: var(--linea); padding: 0.55rem 0; }
+.marquesina--inversa { background: var(--amarillo); color: var(--negro); border-top: var(--linea); transform: rotate(-1.4deg) scale(1.03); position: relative; z-index: 1; margin: -0.5rem 0; }
+.marquesina-pista { display: flex; width: max-content; animation: correr 38s linear infinite; }
+.marquesina--inversa .marquesina-pista { animation-direction: reverse; animation-duration: 30s; }
+.marquesina:hover .marquesina-pista { animation-play-state: paused; }
+.marquesina-copia { display: flex; flex: none; }
+.marquesina-copia span { font-family: var(--display); font-size: clamp(1.4rem, 3.4vw, 2.3rem); text-transform: uppercase; line-height: 1.1; white-space: nowrap; padding: 0 0.6em; }
+.marquesina-copia .sep { padding: 0; opacity: 0.55; }
+@keyframes correr { to { transform: translateX(-50%); } }
+
+/* ---------- Agenda con fotos ---------- */
+.show-foto { grid-column: 1 / -1; aspect-ratio: 5 / 2; border: var(--linea); order: -1; }
+.show.is-out .show-foto img { opacity: 0.55; }
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+  .show-foto { display: none; }
+  .show { transition: background 0.15s linear, padding 0.15s linear; }
+  .show:hover { background: var(--amarillo); padding-inline: 0.75rem; }
+}
+
+.cursor-foto {
+  position: fixed; left: 0; top: 0; z-index: 40; width: 17.5rem; aspect-ratio: 4 / 5;
+  border: var(--linea); box-shadow: 10px 10px 0 var(--negro);
+  pointer-events: none; opacity: 0; scale: 0.85; visibility: hidden;
+  transition: opacity 0.18s linear, scale 0.25s cubic-bezier(.34, 1.56, .64, 1), visibility 0s 0.18s;
+  will-change: transform;
+}
+.cursor-foto.is-visible { opacity: 1; scale: 1; visibility: visible; transition-delay: 0s; }
+.cursor-foto.is-out::before {
+  content: 'Agotado'; position: absolute; z-index: 2; left: 50%; top: 50%; translate: -50% -50%; rotate: -12deg;
+  font-family: var(--display); font-size: 2.6rem; text-transform: uppercase; background: var(--negro); color: var(--amarillo); padding: 0 0.4em;
+}
+
+/* ---------- Discos: funda, vinilo que asoma y reproductor ---------- */
+.sonando { min-height: 1.5em; margin: -0.5rem 0 1rem; font-weight: 700; color: var(--amarillo); font-size: 0.9375rem; }
+.funda { position: relative; aspect-ratio: 1.22 / 1; }
+.funda .cover { position: absolute; left: 0; top: 0; width: 82%; z-index: 2; box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.45); }
+.vinilo {
+  position: absolute; left: 26%; top: 4.9%; width: 74%; aspect-ratio: 1; z-index: 1; border-radius: 50%;
+  transition: transform 0.5s cubic-bezier(.22, 1, .36, 1);
+}
+.vinilo::after { /* brillo fijo: el disco gira debajo */
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(from 30deg, transparent 0 8%, rgba(255, 255, 255, 0.13) 12%, transparent 18% 50%, rgba(255, 255, 255, 0.1) 58%, transparent 64%);
+}
+.surcos {
+  position: absolute; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(circle, #0a0a0a 0 2.2%, var(--etiqueta) 2.6% 30%, var(--etiqueta-tinta) 30.5% 31.5%, transparent 32%),
+    repeating-radial-gradient(circle, #141414 0 1.4px, #222 1.6px 2.8px);
+  border: 2px solid #2b2b2b;
+}
+.surcos::after { /* una marca en la etiqueta para que se note el giro */
+  content: ''; position: absolute; left: 50%; top: 24%; width: 18%; height: 4%; translate: -50% 0;
+  background: var(--etiqueta-tinta); border-radius: 2px;
+}
+.release.is-playing .vinilo { transform: translateX(7%); }
+.release.is-playing .surcos { animation: girar 1.8s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.play {
+  position: absolute; left: 0.6rem; bottom: calc(18% + 0.6rem); z-index: 3;
+  display: grid; place-items: center; width: 3.25rem; height: 3.25rem;
+  background: var(--amarillo); color: var(--negro); border: 3px solid var(--negro); cursor: pointer;
+  box-shadow: 4px 4px 0 var(--negro); transition: transform 0.1s linear, box-shadow 0.1s linear;
+}
+.play svg { width: 1.6rem; height: 1.6rem; fill: currentColor; }
+.play:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--negro); }
+.play[aria-pressed='true'] { background: var(--negro); color: var(--amarillo); border-color: var(--amarillo); box-shadow: 4px 4px 0 var(--amarillo); }
+.play:focus-visible { outline: 4px solid var(--amarillo); outline-offset: 3px; }
+.eq { display: block; width: 82%; height: 2.25rem; margin-top: 0.6rem; }
+
+.creditos { flex-basis: 100%; color: var(--gris); font-size: 0.8125rem; }
+.creditos a { display: inline; padding: 0; }
+
+@media (max-width: 639px) { .sticker { right: 0.25rem; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquesina-pista { animation: none; }
+  .release.is-playing .surcos { animation: none; }
+  .hero-foto { transform: none; }
 }

@@ -1,4 +1,6 @@
-import { SHOWS_BASE, GENEROS, DISCOS } from './datos.js';
+import { SHOWS_BASE, GENEROS, DISCOS, FOTO_HERO } from './datos.js';
+import { urlFoto, srcsetFoto, urlPerfil, creditos } from './fotos.js';
+import { patronDe, hayAudio, crearReproductor } from './sonido.js';
 import {
   MAX_ENTRADAS, cancelar, construirAgenda, cuando, cuposRestantes, estado, faltan, fechaCorta, filtrar,
   maxPedible, parseReservas, pesos, proximo, reservar, resumen, total,
@@ -80,7 +82,9 @@ function filaShow(s) {
   const tuyas = reservas[s.id] ?? 0;
   const rel = cuando(s);
   const pocos = !agotado && libres <= 10;
-  return h('li', { class: `show${agotado ? ' is-out' : ''}` },
+  return h('li', { class: `show${agotado ? ' is-out' : ''}`, 'data-foto': s.foto?.id ?? '' },
+    s.foto ? h('div', { class: 'show-foto trama', 'aria-hidden': 'true' },
+      h('img', { src: urlFoto(s.foto.id, { w: 720, h: 288 }), srcset: srcsetFoto(s.foto.id, [480, 720, 960], 2.5), sizes: '100vw', alt: '', width: 720, height: 288, loading: 'lazy', decoding: 'async' })) : null,
     h('p', { class: 'show-date' }, fechaCorta(s.fecha), h('small', {}, `${s.hora} h`)),
     h('div', { class: 'show-body' },
       h('h3', { class: 'show-band' }, s.banda),
@@ -128,14 +132,201 @@ function cover(forma, i) {
   return svg;
 }
 
+const reproductor = hayAudio() ? crearReproductor() : null;
+const COLORES_ETIQUETA = [['#f5e500', '#0a0a0a'], ['#0a0a0a', '#f5e500'], ['#f1ede4', '#0a0a0a']];
+const ICONO_PLAY = 'M8 5v14l11-7z';
+const ICONO_STOP = 'M6 6h12v12H6z';
+
+function icono(d) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', d);
+  svg.append(path);
+  return svg;
+}
+
 function pintarDiscos() {
-  $('releases').replaceChildren(...DISCOS.map((d, i) =>
-    h('li', {},
-      cover(d.forma, i),
+  $('releases').replaceChildren(...DISCOS.map((d, i) => {
+    const [fondo, tinta] = COLORES_ETIQUETA[i % 3];
+    const patron = patronDe(d.forma);
+    const boton = reproductor && patron
+      ? h('button', {
+          class: 'play', type: 'button', 'aria-pressed': 'false', 'data-disco': d.id,
+          'aria-label': `Escuchar un adelanto de ${d.titulo}, de ${d.banda}`,
+          onclick: () => alternarDisco(d, patron),
+        }, icono(ICONO_PLAY))
+      : null;
+    return h('li', { class: 'release', 'data-disco': d.id },
+      h('div', { class: 'funda' },
+        h('div', { class: 'vinilo', 'aria-hidden': 'true', style: `--etiqueta:${fondo};--etiqueta-tinta:${tinta}` }, h('div', { class: 'surcos' })),
+        cover(d.forma, i),
+        boton,
+      ),
+      reproductor ? h('canvas', { class: 'eq', width: 240, height: 36, 'aria-hidden': 'true' }) : null,
       h('h3', { class: 'rel-title' }, d.titulo),
       h('p', { class: 'rel-meta' }, `${d.banda} · ${d.anio} · ${d.formato}`),
       h('p', { class: 'rel-price' }, pesos(d.precio)),
-    )));
+    );
+  }));
+}
+
+let dibujo = 0;
+const niveles = new Uint8Array(64);
+
+function marcarDisco(id) {
+  for (const li of document.querySelectorAll('.release')) {
+    const activo = li.dataset.disco === id;
+    li.classList.toggle('is-playing', activo);
+    const b = li.querySelector('.play');
+    if (!b) continue;
+    const d = DISCOS.find((x) => x.id === li.dataset.disco);
+    b.setAttribute('aria-pressed', String(activo));
+    b.setAttribute('aria-label', activo ? `Detener ${d.titulo}` : `Escuchar un adelanto de ${d.titulo}, de ${d.banda}`);
+    b.replaceChildren(icono(activo ? ICONO_STOP : ICONO_PLAY));
+    if (!activo) limpiarEq(li.querySelector('.eq'));
+  }
+}
+
+function limpiarEq(canvas) {
+  const c = canvas?.getContext('2d');
+  if (!c) return;
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.fillStyle = '#4f4c45';
+  c.fillRect(0, canvas.height - 2, canvas.width, 2);
+}
+
+function dibujarEq() {
+  const id = reproductor?.sonando();
+  const canvas = id && document.querySelector(`.release[data-disco="${CSS.escape(id)}"] .eq`);
+  if (!canvas) { dibujo = 0; return; }
+  const c = canvas.getContext('2d');
+  reproductor.niveles(niveles);
+  const barras = 24;
+  const ancho = canvas.width / barras;
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.fillStyle = '#f5e500';
+  for (let i = 0; i < barras; i++) {
+    const v = niveles[Math.min(niveles.length - 1, Math.floor((i / barras) ** 1.4 * niveles.length * 0.9))] / 255;
+    const alto = Math.max(2, v * canvas.height);
+    c.fillRect(i * ancho + 1, canvas.height - alto, ancho - 2, alto);
+  }
+  dibujo = requestAnimationFrame(dibujarEq);
+}
+
+async function alternarDisco(d, patron) {
+  if (reproductor.sonando() === d.id) {
+    reproductor.detener();
+    return;
+  }
+  let arranco = false;
+  try {
+    arranco = await reproductor.tocar(d.id, patron, {
+      alTerminar: () => {
+        marcarDisco(null);
+        $('sonando').textContent = '';
+      },
+    });
+  } catch {
+    $('sonando').textContent = 'Tu navegador no dejó reproducir el sonido.';
+    return;
+  }
+  if (!arranco) return;
+  marcarDisco(d.id);
+  $('sonando').textContent = `Sonando: ${d.titulo}, de ${d.banda}. Generado en vivo, sin archivos.`;
+  cancelAnimationFrame(dibujo);
+  dibujo = requestAnimationFrame(dibujarEq);
+}
+
+// Si la pestaña queda en segundo plano, se corta: no queremos ruido que el usuario no ve.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) reproductor?.detener();
+});
+
+/* ---------- Fotos: hero, cursor en la agenda, marquesinas y créditos ---------- */
+function pintarHero() {
+  const img = $('hero-img');
+  img.src = urlFoto(FOTO_HERO.id, { w: 800, h: 600 });
+  img.srcset = srcsetFoto(FOTO_HERO.id, [480, 800, 1200], 4 / 3);
+  img.sizes = '(min-width: 900px) 36vw, 92vw';
+}
+
+function pintarMarquesinas() {
+  const fechas = agenda.map((s) => `${fechaCorta(s.fecha)} ${s.banda}`);
+  const lema = ['Sin permiso', 'Sin cargo de servicio', 'Hecho en el sur', 'Fuerte y barato'];
+  const llenar = (el, items) => {
+    // dos copias seguidas: la animación corre una copia entera y vuelve al principio sin salto
+    const copia = () => h('span', { class: 'marquesina-copia' }, ...items.flatMap((t) => [h('span', {}, t), h('span', { class: 'sep' }, '/')]));
+    el.replaceChildren(copia(), copia());
+  };
+  llenar($('marquesina'), fechas.length ? fechas : ['Volvemos pronto']);
+  llenar($('marquesina-2'), lema);
+}
+
+function pintarCreditos() {
+  const fotos = creditos([FOTO_HERO, ...SHOWS_BASE.map((s) => s.foto)]);
+  $('creditos').replaceChildren('Fotos de ', ...fotos.flatMap((f, i) => [
+    i ? (i === fotos.length - 1 ? ' y ' : ', ') : '',
+    h('a', { href: urlPerfil(f.usuario), target: '_blank', rel: 'noopener' }, f.autor),
+  ]), ' en Unsplash.');
+}
+
+/** Foto que sigue al cursor sobre la agenda. Solo con mouse; en pantallas táctiles cada fila muestra su foto. */
+function iniciarCursorFoto() {
+  const caja = $('cursor-foto');
+  const img = caja.querySelector('img');
+  const conMouse = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)');
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)');
+  let x = 0, y = 0, tx = 0, ty = 0, vx = 0, activo = false, raf = 0, actual = '';
+  const precargadas = new Set();
+
+  const mover = () => {
+    const k = quieto.matches ? 1 : 0.16;
+    const px = x;
+    x += (tx - x) * k;
+    y += (ty - y) * k;
+    vx = x - px;
+    const giro = quieto.matches ? 0 : Math.max(-10, Math.min(10, vx * 0.6));
+    caja.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${giro}deg)`;
+    raf = activo || Math.abs(tx - x) > 0.5 ? requestAnimationFrame(mover) : 0;
+  };
+  const destino = (e) => {
+    const ancho = caja.offsetWidth || 280;
+    const alto = caja.offsetHeight || 350;
+    // a la derecha del cursor, salvo que no entre en la pantalla
+    tx = e.clientX + 28 + ancho > innerWidth ? e.clientX - ancho - 28 : e.clientX + 28;
+    ty = Math.max(8, Math.min(innerHeight - alto - 8, e.clientY - alto / 2));
+  };
+
+  const lista = $('shows');
+  lista.addEventListener('pointerover', (e) => {
+    if (!conMouse.matches) return;
+    const fila = e.target.closest('.show');
+    const id = fila?.dataset.foto;
+    if (!id) return;
+    if (!precargadas.size) for (const s of agenda) if (s.foto) { const i = new Image(); i.src = urlFoto(s.foto.id, { w: 560, h: 700 }); precargadas.add(s.foto.id); }
+    if (id !== actual) {
+      actual = id;
+      img.src = urlFoto(id, { w: 560, h: 700 });
+    }
+    caja.classList.toggle('is-out', fila.classList.contains('is-out'));
+    if (!activo) {
+      activo = true;
+      destino(e);
+      x = tx;
+      y = ty;
+      caja.classList.add('is-visible');
+    }
+    if (!raf) raf = requestAnimationFrame(mover);
+  });
+  lista.addEventListener('pointermove', (e) => { if (activo) destino(e); });
+  lista.addEventListener('pointerleave', () => {
+    activo = false;
+    caja.classList.remove('is-visible');
+  });
+  // al scrollear con la rueda el cursor no se mueve, pero la fila debajo cambia: se resuelve en el próximo pointerover
 }
 
 /* ---------- Reserva ---------- */
@@ -257,13 +448,19 @@ function tick() {
   if (nueva.map((s) => s.id).join() !== agenda.map((s) => s.id).join() || nueva.some((s, i) => estado(s) !== estado(agenda[i]))) {
     agenda = nueva;
     pintarAgenda();
+    pintarMarquesinas();
   }
   pintarProximo();
 }
 
+pintarHero();
 pintarChips();
 pintarAgenda();
+pintarMarquesinas();
 pintarDiscos();
+document.querySelectorAll('.eq').forEach(limpiarEq);
+pintarCreditos();
+iniciarCursorFoto();
 pintarContador();
 pintarProximo();
 setInterval(tick, 30_000);
