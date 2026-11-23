@@ -241,22 +241,29 @@ dialog h3 { font-family: var(--display); font-size: 1.8rem; text-transform: uppe
   .hero .btn { grid-area: btn; justify-self: start; }
 }
 
-/* ---------- Fotos con trama de fotocopia ----------
-   La foto pasa a blanco y negro y se multiplica sobre el amarillo; encima, una grilla de puntos
-   "aclara" lo que no es tinta: queda como impresa en offset barato. */
-.trama { position: relative; overflow: hidden; background: var(--amarillo); isolation: isolate; }
-.trama img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.8) brightness(1.15); mix-blend-mode: multiply; }
-.trama::after {
+/* ---------- Fotos en color con un velo sutil ----------
+   Un poco más de contraste y saturación, una sombra que sube desde abajo y un brillo amarillo
+   en una esquina (luz de escenario). Si la imagen no carga, queda un bloque oscuro, no un hueco amarillo. */
+.foto, .show-foto { position: relative; overflow: hidden; background: #1c1b19; }
+.foto img, .show-foto img { display: block; width: 100%; height: 100%; object-fit: cover; filter: contrast(1.06) saturate(1.12); transition: transform 0.6s cubic-bezier(.22, 1, .36, 1), filter 0.3s linear; }
+.foto::after, .show-foto::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(circle, rgba(245, 229, 0, 0.85) 0 0.8px, transparent 1.3px) 0 0 / 3px 3px;
-  mix-blend-mode: lighten;
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(245, 229, 0, 0.22), transparent 55%),
+    linear-gradient(180deg, transparent 50%, rgba(10, 10, 10, 0.5));
+  mix-blend-mode: normal;
+}
+.sin-foto img { visibility: hidden; }
+.show-foto.sin-foto::before {
+  content: attr(data-banda); position: absolute; inset: 0; display: grid; place-items: center; padding: 0.5rem;
+  font-family: var(--display); text-transform: uppercase; color: var(--amarillo); font-size: 1.5rem; text-align: center;
 }
 
 main { overflow-x: clip; }
 
 /* Hero: foto pegada con cinta, ligeramente torcida */
 .hero-foto { position: relative; margin: 1.5rem 0 0; transform: rotate(2deg); max-width: 34rem; }
-.hero-foto .trama { aspect-ratio: 16 / 10; border: var(--linea); box-shadow: 8px 8px 0 var(--negro); }
+.hero-foto .foto { aspect-ratio: 16 / 10; border: var(--linea); box-shadow: 8px 8px 0 var(--negro); }
 .cinta-adhesiva {
   position: absolute; left: 38%; top: -0.9rem; width: 7.5rem; height: 1.9rem; z-index: 2;
   background: rgba(241, 237, 228, 0.78); transform: rotate(-6deg);
@@ -286,24 +293,21 @@ main { overflow-x: clip; }
 
 /* ---------- Agenda con fotos ---------- */
 .show-foto { grid-column: 1 / -1; aspect-ratio: 5 / 2; border: var(--linea); order: -1; }
-.show.is-out .show-foto img { opacity: 0.55; }
-@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
-  .show-foto { display: none; }
-  .show { transition: background 0.15s linear, padding 0.15s linear; }
-  .show:hover { background: var(--amarillo); padding-inline: 0.75rem; }
+.show-foto picture { display: contents; }
+.show.is-out .show-foto img { filter: grayscale(1) contrast(1.1); opacity: 0.6; }
+@media (min-width: 900px) {
+  .show { grid-template-columns: 3rem 12.5rem 10rem 1fr auto; }
+  .show::before { grid-column: 1; grid-row: 1; }
+  .show-date { grid-column: 2; grid-row: 1; }
+  .show-foto { grid-column: 3; grid-row: 1; order: 0; aspect-ratio: 4 / 3; box-shadow: 5px 5px 0 var(--negro); transform: rotate(-1.5deg); }
+  .show:nth-child(even) .show-foto { transform: rotate(1.5deg); }
+  .show-body { grid-column: 4; grid-row: 1; }
+  .show-buy { grid-column: 5; grid-row: 1; }
 }
-
-.cursor-foto {
-  position: fixed; left: 0; top: 0; z-index: 40; width: 17.5rem; aspect-ratio: 4 / 5;
-  border: var(--linea); box-shadow: 10px 10px 0 var(--negro);
-  pointer-events: none; opacity: 0; scale: 0.85; visibility: hidden;
-  transition: opacity 0.18s linear, scale 0.25s cubic-bezier(.34, 1.56, .64, 1), visibility 0s 0.18s;
-  will-change: transform;
-}
-.cursor-foto.is-visible { opacity: 1; scale: 1; visibility: visible; transition-delay: 0s; }
-.cursor-foto.is-out::before {
-  content: 'Agotado'; position: absolute; z-index: 2; left: 50%; top: 50%; translate: -50% -50%; rotate: -12deg;
-  font-family: var(--display); font-size: 2.6rem; text-transform: uppercase; background: var(--negro); color: var(--amarillo); padding: 0 0.4em;
+@media (hover: hover) and (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  .show-foto { transition: transform 0.25s cubic-bezier(.34, 1.56, .64, 1); }
+  .show:hover .show-foto { transform: rotate(0deg) scale(1.06); }
+  .show:hover .show-foto img { transform: scale(1.06); }
 }
 
 /* ---------- Discos: funda, vinilo que asoma y reproductor ---------- */

@@ -1,31 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { urlFoto, srcsetFoto, urlPerfil, creditos } from '../site/js/fotos.js';
+import { existsSync, statSync } from 'node:fs';
+import { rutaFoto, urlPerfil, creditos, VARIANTES } from '../site/js/fotos.js';
 import { SHOWS_BASE, FOTO_HERO } from '../site/js/datos.js';
 
-test('urlFoto arma la URL del CDN con recorte y tamaño acotado', () => {
-  const u = new URL(urlFoto('photo-123-abc', { w: 720, h: 288 }));
-  assert.equal(u.origin, 'https://images.unsplash.com');
-  assert.equal(u.pathname, '/photo-123-abc');
-  assert.equal(u.searchParams.get('w'), '720');
-  assert.equal(u.searchParams.get('h'), '288');
-  assert.equal(u.searchParams.get('fit'), 'crop');
-  assert.equal(new URL(urlFoto('photo-1', { w: 99999 })).searchParams.get('w'), '2400');
-  assert.equal(new URL(urlFoto('photo-1', { w: 'nada' })).searchParams.get('w'), '800');
+const sitio = new URL('../site/', import.meta.url);
+
+test('rutaFoto arma la ruta local de cada variante', () => {
+  assert.equal(rutaFoto('ruta-cero', 'ficha'), 'img/shows/ruta-cero-ficha.webp');
+  assert.equal(rutaFoto('ruta-cero', 'franja'), 'img/shows/ruta-cero-franja.webp');
 });
 
-test('urlFoto rechaza ids que no son de Unsplash (no arma URLs raras)', () => {
-  for (const malo of ['', null, undefined, '../x', 'photo-1?x=1', 'https://evil.example/a.jpg', 'photo 1']) {
-    assert.equal(urlFoto(malo), '', String(malo));
-  }
-  assert.equal(srcsetFoto('nope', [400]), '');
-});
-
-test('srcsetFoto mantiene la proporción en cada ancho', () => {
-  const partes = srcsetFoto('photo-1', [480, 960], 2.5).split(', ');
-  assert.equal(partes.length, 2);
-  assert.match(partes[0], /w=480.*h=192.* 480w$/);
-  assert.match(partes[1], /w=960.*h=384.* 960w$/);
+test('rutaFoto rechaza ids o variantes raras (no arma rutas fuera de la carpeta)', () => {
+  for (const malo of ['', null, undefined, '../x', 'a/b', 'A B', 'x.webp']) assert.equal(rutaFoto(malo, 'ficha'), '', String(malo));
+  assert.equal(rutaFoto('ruta-cero', 'grande'), '');
+  assert.equal(rutaFoto('ruta-cero', 'toString'), '');
 });
 
 test('urlPerfil lleva la referencia y no acepta usuarios con caracteres raros', () => {
@@ -38,11 +27,18 @@ test('créditos sin repetir y en orden', () => {
   assert.deepEqual(c.map((x) => x.usuario), ['a', 'b']);
 });
 
-test('cada show y el hero tienen una foto válida y acreditada', () => {
-  for (const f of [FOTO_HERO, ...SHOWS_BASE.map((s) => s.foto)]) {
-    assert.ok(urlFoto(f?.id), `foto inválida: ${JSON.stringify(f)}`);
-    assert.ok(f.autor && f.usuario, 'falta el crédito');
+test('cada show tiene sus dos fotos en el repo y su crédito', () => {
+  for (const s of SHOWS_BASE) {
+    assert.ok(s.foto?.autor && s.foto?.usuario, `${s.id}: falta el crédito`);
+    for (const v of Object.keys(VARIANTES)) {
+      const archivo = new URL(rutaFoto(s.id, v), sitio);
+      assert.ok(existsSync(archivo), `falta ${rutaFoto(s.id, v)}`);
+      assert.ok(statSync(archivo).size < 120_000, `${rutaFoto(s.id, v)} pesa demasiado`);
+    }
   }
-  const ids = SHOWS_BASE.map((s) => s.foto.id);
-  assert.equal(new Set(ids).size, ids.length, 'dos shows con la misma foto');
+});
+
+test('la foto del hero está en el repo y acreditada', () => {
+  assert.ok(FOTO_HERO.autor && FOTO_HERO.usuario);
+  for (const f of ['img/hero-720.webp', 'img/hero-1200.webp']) assert.ok(existsSync(new URL(f, sitio)), `falta ${f}`);
 });

@@ -1,5 +1,5 @@
 import { SHOWS_BASE, GENEROS, DISCOS, FOTO_HERO } from './datos.js';
-import { urlFoto, srcsetFoto, urlPerfil, creditos } from './fotos.js';
+import { rutaFoto, urlPerfil, creditos } from './fotos.js';
 import { patronDe, hayAudio, crearReproductor } from './sonido.js';
 import {
   MAX_ENTRADAS, cancelar, construirAgenda, cuando, cuposRestantes, estado, faltan, fechaCorta, filtrar,
@@ -76,15 +76,29 @@ function pintarAgenda() {
   $('live').textContent = lista.length === 1 ? '1 show' : `${lista.length} shows`;
 }
 
+/** Foto del show: ficha 4:3 en computadora, franja 5:2 en el celular. Si no carga, queda un bloque oscuro con el nombre. */
+function fotoShow(s) {
+  const ficha = rutaFoto(s.id, 'ficha');
+  const franja = rutaFoto(s.id, 'franja');
+  if (!ficha) return null;
+  const img = h('img', { src: franja, alt: '', width: 960, height: 384, loading: 'lazy', decoding: 'async' });
+  img.addEventListener('error', () => img.closest('.show-foto')?.classList.add('sin-foto'), { once: true });
+  return h('div', { class: 'show-foto', 'aria-hidden': 'true', 'data-banda': s.banda },
+    h('picture', {},
+      h('source', { media: '(min-width: 900px)', srcset: ficha, width: 480, height: 360 }),
+      img,
+    ),
+  );
+}
+
 function filaShow(s) {
   const libres = cuposRestantes(s, reservas);
   const agotado = s.cupos === 0;
   const tuyas = reservas[s.id] ?? 0;
   const rel = cuando(s);
   const pocos = !agotado && libres <= 10;
-  return h('li', { class: `show${agotado ? ' is-out' : ''}`, 'data-foto': s.foto?.id ?? '' },
-    s.foto ? h('div', { class: 'show-foto trama', 'aria-hidden': 'true' },
-      h('img', { src: urlFoto(s.foto.id, { w: 720, h: 288 }), srcset: srcsetFoto(s.foto.id, [480, 720, 960], 2.5), sizes: '100vw', alt: '', width: 720, height: 288, loading: 'lazy', decoding: 'async' })) : null,
+  return h('li', { class: `show${agotado ? ' is-out' : ''}` },
+    fotoShow(s),
     h('p', { class: 'show-date' }, fechaCorta(s.fecha), h('small', {}, `${s.hora} h`)),
     h('div', { class: 'show-body' },
       h('h3', { class: 'show-band' }, s.banda),
@@ -245,12 +259,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) reproductor?.detener();
 });
 
-/* ---------- Fotos: hero, cursor en la agenda, marquesinas y créditos ---------- */
+/* ---------- Fotos del hero, marquesinas y créditos ---------- */
 function pintarHero() {
   const img = $('hero-img');
-  img.src = urlFoto(FOTO_HERO.id, { w: 800, h: 600 });
-  img.srcset = srcsetFoto(FOTO_HERO.id, [480, 800, 1200], 4 / 3);
-  img.sizes = '(min-width: 900px) 36vw, 92vw';
+  img.addEventListener('error', () => img.closest('.hero-foto')?.classList.add('sin-foto'), { once: true });
 }
 
 function pintarMarquesinas() {
@@ -273,61 +285,6 @@ function pintarCreditos() {
   ]), ' en Unsplash.');
 }
 
-/** Foto que sigue al cursor sobre la agenda. Solo con mouse; en pantallas táctiles cada fila muestra su foto. */
-function iniciarCursorFoto() {
-  const caja = $('cursor-foto');
-  const img = caja.querySelector('img');
-  const conMouse = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)');
-  const quieto = matchMedia('(prefers-reduced-motion: reduce)');
-  let x = 0, y = 0, tx = 0, ty = 0, vx = 0, activo = false, raf = 0, actual = '';
-  const precargadas = new Set();
-
-  const mover = () => {
-    const k = quieto.matches ? 1 : 0.16;
-    const px = x;
-    x += (tx - x) * k;
-    y += (ty - y) * k;
-    vx = x - px;
-    const giro = quieto.matches ? 0 : Math.max(-10, Math.min(10, vx * 0.6));
-    caja.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${giro}deg)`;
-    raf = activo || Math.abs(tx - x) > 0.5 ? requestAnimationFrame(mover) : 0;
-  };
-  const destino = (e) => {
-    const ancho = caja.offsetWidth || 280;
-    const alto = caja.offsetHeight || 350;
-    // a la derecha del cursor, salvo que no entre en la pantalla
-    tx = e.clientX + 28 + ancho > innerWidth ? e.clientX - ancho - 28 : e.clientX + 28;
-    ty = Math.max(8, Math.min(innerHeight - alto - 8, e.clientY - alto / 2));
-  };
-
-  const lista = $('shows');
-  lista.addEventListener('pointerover', (e) => {
-    if (!conMouse.matches) return;
-    const fila = e.target.closest('.show');
-    const id = fila?.dataset.foto;
-    if (!id) return;
-    if (!precargadas.size) for (const s of agenda) if (s.foto) { const i = new Image(); i.src = urlFoto(s.foto.id, { w: 560, h: 700 }); precargadas.add(s.foto.id); }
-    if (id !== actual) {
-      actual = id;
-      img.src = urlFoto(id, { w: 560, h: 700 });
-    }
-    caja.classList.toggle('is-out', fila.classList.contains('is-out'));
-    if (!activo) {
-      activo = true;
-      destino(e);
-      x = tx;
-      y = ty;
-      caja.classList.add('is-visible');
-    }
-    if (!raf) raf = requestAnimationFrame(mover);
-  });
-  lista.addEventListener('pointermove', (e) => { if (activo) destino(e); });
-  lista.addEventListener('pointerleave', () => {
-    activo = false;
-    caja.classList.remove('is-visible');
-  });
-  // al scrollear con la rueda el cursor no se mueve, pero la fila debajo cambia: se resuelve en el próximo pointerover
-}
 
 /* ---------- Reserva ---------- */
 const dlg = $('dlg-reserva');
@@ -460,7 +417,6 @@ pintarMarquesinas();
 pintarDiscos();
 document.querySelectorAll('.eq').forEach(limpiarEq);
 pintarCreditos();
-iniciarCursorFoto();
 pintarContador();
 pintarProximo();
 setInterval(tick, 30_000);

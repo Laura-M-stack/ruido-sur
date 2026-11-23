@@ -1,27 +1,14 @@
-// Fotos de Unsplash servidas desde su CDN (licencia Unsplash: uso libre, con crédito como cortesía).
-// El CDN recorta y comprime según el tamaño pedido, así cada lugar baja solo los píxeles que usa.
+// Fotos de Unsplash (licencia Unsplash) descargadas y guardadas en el repo: no dependen de un servicio externo
+// para verse. Cada show tiene dos recortes: "ficha" (4:3, al lado del nombre en computadora)
+// y "franja" (5:2, arriba de la fila en el celular).
 
-const CDN = 'https://images.unsplash.com/';
-const ID_VALIDO = /^photo-[\w-]+$/;
+const ID_VALIDO = /^[a-z0-9-]+$/;
+export const VARIANTES = { ficha: [480, 360], franja: [960, 384] };
 
-/**
- * URL de una foto recortada al tamaño pedido.
- * Devuelve '' si el id no tiene el formato de Unsplash (así una foto mal cargada no rompe la página).
- */
-export function urlFoto(id, { w = 800, h, q = 60 } = {}) {
-  if (typeof id !== 'string' || !ID_VALIDO.test(id)) return '';
-  const ancho = Math.max(16, Math.min(2400, Math.round(Number(w) || 800)));
-  const params = new URLSearchParams({ auto: 'format', fit: 'crop', crop: 'entropy', w: String(ancho), q: String(q) });
-  if (h) params.set('h', String(Math.max(16, Math.min(2400, Math.round(Number(h) || ancho)))));
-  return `${CDN}${id}?${params}`;
-}
-
-/** srcset con varios anchos y la misma proporción. */
-export function srcsetFoto(id, anchos, proporcion) {
-  if (!urlFoto(id)) return '';
-  return anchos
-    .map((w) => `${urlFoto(id, { w, h: proporcion ? Math.round(w / proporcion) : undefined })} ${w}w`)
-    .join(', ');
+/** Ruta local de la foto de un show. '' si el id o la variante no son válidos. */
+export function rutaFoto(id, variante) {
+  if (typeof id !== 'string' || !ID_VALIDO.test(id) || !Object.hasOwn(VARIANTES, variante)) return '';
+  return `img/shows/${id}-${variante}.webp`;
 }
 
 /** Link al perfil del fotógrafo, con la referencia que pide Unsplash. */

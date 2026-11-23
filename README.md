@@ -7,7 +7,7 @@ Demo: https://laura-m-stack.github.io/ruido-sur/
 ## Qué tiene
 
 - **Riffs generados en vivo:** cada disco tiene un botón de play que sintetiza batería, bajo y guitarra distorsionada con Web Audio, sin archivos de audio. Cada tapa tiene su propio riff (punk, post-punk con eco, hardcore con breakdown, noise), el vinilo asoma y gira mientras suena y un visualizador muestra el espectro. Se corta solo a los 30 segundos o si la pestaña pasa a segundo plano.
-- **Fotos con trama de fotocopia:** fotos de Unsplash pasadas a blanco y negro, multiplicadas sobre el amarillo y con una grilla de puntos encima, todo con CSS. En la agenda, la foto de cada banda sigue al cursor (con inercia y un leve giro según la velocidad); en pantallas táctiles cada fila muestra su foto.
+- **Fotos de cada banda:** en computadora, una ficha al lado del nombre (torcida, se endereza y crece al pasar el mouse); en el celular, una franja arriba de cada fila. Están en color con un velo sutil (sombra desde abajo y un brillo amarillo de escenario). Las fotos están en el repo en WebP, en dos recortes, así siempre cargan; si alguna falla queda un bloque oscuro con el nombre de la banda.
 - **Tipografía que se estira con el scroll:** "RUIDO SUR" se deforma con `animation-timeline: scroll()`, sin JavaScript. Donde no hay soporte, queda quieta.
 - **Marquesinas** con las próximas fechas y el lema del sello, que se pausan con el mouse.
 - **Agenda viva:** las fechas son "hoy + N días" en hora de Buenos Aires, así la demo nunca queda vencida. Los shows que terminaron (3 horas después de empezar) desaparecen solos, y la cuenta regresiva de la próxima fecha se actualiza sin recargar.
@@ -15,7 +15,7 @@ Demo: https://laura-m-stack.github.io/ruido-sur/
 - **Reserva de entradas:** máximo 4 por persona y por show, respeta los cupos, valida el nombre, calcula el total y permite copiar la reserva. Los shows agotados quedan marcados y sin botón.
 - **Mis reservas:** se guardan en el navegador (`localStorage`). Al leerlas se descartan datos inválidos o manipulados, y se pueden cancelar.
 - **Accesibilidad:** contraste AA, foco visible, `<dialog>` nativo con foco devuelto al cerrar, `prefers-reduced-motion` (sin marquesinas, sin giro ni estiramiento), objetivos táctiles de 44 px, botones de play con `aria-pressed` y estado anunciado.
-- **Lógica pura y testeada:** agenda, URLs de fotos y patrones de los riffs no tocan el DOM (30 tests con el runner nativo de Node).
+- **Lógica pura y testeada:** agenda, rutas de fotos y patrones de los riffs no tocan el DOM (30 tests con el runner nativo de Node, que también verifican que cada foto exista y no pese de más).
 
 Es una demo: no se venden entradas ni discos, y nada se envía a ningún servidor.
 
@@ -36,7 +36,8 @@ site/
   css/styles.css
   js/agenda.js     lógica de fechas, filtros y reservas (con tests)
   js/datos.js      shows, discos y fotos de ejemplo
-  js/fotos.js      URLs del CDN de Unsplash y créditos (con tests)
+  js/fotos.js      rutas de las fotos y créditos (con tests)
+  img/             fotos de Unsplash recortadas y en WebP
   js/sonido.js     patrones de los riffs (con tests) y motor de Web Audio
   js/main.js       interfaz y manejo del DOM
 tests/
